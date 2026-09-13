@@ -19,153 +19,179 @@
 <footer class="footer"><span>照片均链接到具体 Wikimedia Commons 文件页；可点击查看作者与许可。</span><span>班次、景区开放、卡线通行：出发前 3—7 天复核。</span></footer>
 </div><div class="toast" id="toast">已复制</div>
 <script>
-const SKETCH_SCALE=4.5, SKETCH_ORigin={x:60,y:50};
-const PLACES=[
- {name:'海拉尔',lat:49.21,lng:119.75,day:0,mode:'起点'},
- {name:'莫日格勒河',lat:49.42,lng:119.48,day:0,mode:'班车'},
- {name:'根河',lat:51.33,lng:121.81,day:1,mode:'班车'},
- {name:'敖鲁古雅',lat:50.70,lng:121.38,day:1,mode:'接驳'},
- {name:'莫尔道嘎',lat:51.27,lng:120.77,day:1,mode:'火车'},
- {name:'莫尔道嘎森林公园',lat:51.41,lng:120.74,day:2,mode:'接驳'},
- {name:'拉布大林',lat:50.26,lng:120.22,day:2,mode:'班车'},
- {name:'额尔古纳湿地',lat:50.35,lng:120.42,day:3,mode:'接驳'},
- {name:'卡线示意',lat:50.56,lng:120.00,day:4,mode:'拼车'},
- {name:'满洲里',lat:49.59,lng:117.45,day:5,mode:'班车'}
-];
-function toSvg(lat,lng){return{x:(lng-117)*SKETCH_SCALE+SKETCH_ORigin.x,y:(51.5-lat)*SKETCH_SCALE+SKETCH_ORigin.y}}
-const COLORS={班车:'#4779a1',火车:'#7b5d99',拼车:'#b7843e',接驳:'#6b9b6a',起点:'#315b43'};
-const routeLines=[
- {pts:['海拉尔','莫日格勒河'],mode:'班车'},
- {pts:['海拉尔','根河'],mode:'班车'},
- {pts:['根河','敖鲁古雅'],mode:'接驳'},
- {pts:['根河','莫尔道嘎'],mode:'火车'},
- {pts:['莫尔道嘎','莫尔道嘎森林公园'],mode:'接驳'},
- {pts:['莫尔道嘎','拉布大林'],mode:'班车'},
- {pts:['拉布大林','额尔古纳湿地'],mode:'接驳'},
- {pts:['拉布大林','卡线示意','拉布大林'],mode:'拼车'},
- {pts:['拉布大林','满洲里'],mode:'班车'},
- {pts:['满洲里','海拉尔'],mode:'班车'}
-];
-let svgEls=[];
-function renderSketchMap(){
- const svg=document.getElementById('sketchMap');if(!svg)return;
- svgEls.forEach(e=>e.remove());svgEls=[];
- const ns='http://www.w3.org/2000/svg';
- // background
- const bg=document.createElementNS(ns,'rect');
- bg.setAttribute('width','100%');bg.setAttribute('height','100%');
- bg.setAttribute('fill','#e8e6dc');bg.setAttribute('rx','4');
- svg.appendChild(bg);
- // 河流
- const arun=document.createElementNS(ns,'path');
- arun.setAttribute('d','M 140 180 Q 200 170 260 175 T 380 165 Q 440 155 500 160 T 620 148');
- arun.setAttribute('fill','none');arun.setAttribute('stroke','#a8c4b8');arun.setAttribute('stroke-width','2.5');arun.setAttribute('stroke-opacity','0.7');
- svg.appendChild(arun);
- const arunLabel=document.createElementNS(ns,'text');
- arunLabel.setAttribute('x','420');arunLabel.setAttribute('y','158');
- arunLabel.setAttribute('fill','#7a9a8a');arunLabel.setAttribute('font-size','10');arunLabel.setAttribute('font-family','var(--sans)');
- arunLabel.textContent='额尔古纳河';svg.appendChild(arunLabel);
- // 森林区域
- const forest=document.createElementNS(ns,'ellipse');
- forest.setAttribute('cx','480');forest.setAttribute('cy','120');forest.setAttribute('rx','90');forest.setAttribute('ry','60');
- forest.setAttribute('fill','#c8d8c4');forest.setAttribute('opacity','0.35');
- svg.appendChild(forest);
- const fLabel=document.createElementNS(ns,'text');
- fLabel.setAttribute('x','430');fLabel.setAttribute('y','115');
- fLabel.setAttribute('fill','#5a7a5a');fLabel.setAttribute('font-size','11');fLabel.setAttribute('font-family','var(--sans)');
- fLabel.textContent='大兴安岭林区';svg.appendChild(fLabel);
- // 湿地区域
- const wet=document.createElementNS(ns,'ellipse');
- wet.setAttribute('cx','310');wet.setAttribute('cy','220');wet.setAttribute('rx','70');wet.setAttribute('ry','45');
- wet.setAttribute('fill','#d8e8d0');wet.setAttribute('opacity','0.4');
- svg.appendChild(wet);
- const wLabel=document.createElementNS(ns,'text');
- wLabel.setAttribute('x','270');wLabel.setAttribute('y','245');
- wLabel.setAttribute('fill','#5a7a5a');wLabel.setAttribute('font-size','10');wLabel.setAttribute('font-family','var(--sans)');
- wLabel.textContent='额尔古纳湿地';svg.appendChild(wLabel);
- // 草原
- const grassLabel=document.createElementNS(ns,'text');
- grassLabel.setAttribute('x','130');grassLabel.setAttribute('y','280');
- grassLabel.setAttribute('fill','#7a9a6a');grassLabel.setAttribute('font-size','12');grassLabel.setAttribute('font-family','var(--sans)');
- grassLabel.textContent='呼伦贝尔草原';svg.appendChild(grassLabel);
- // 边界线（示意）
- const border=document.createElementNS(ns,'path');
- border.setAttribute('d','M 500 90 Q 560 85 620 100 T 700 95');
- border.setAttribute('fill','none');border.setAttribute('stroke','#8aaa8a');border.setAttribute('stroke-width','1.5');border.setAttribute('stroke-dasharray','4 3');
- svg.appendChild(border);
- const borderLabel=document.createElementNS(ns,'text');
- borderLabel.setAttribute('x','610');borderLabel.setAttribute('y','88');
- borderLabel.setAttribute('fill','#6a8a6a');borderLabel.setAttribute('font-size','9');borderLabel.setAttribute('font-family','var(--sans)');
- borderLabel.textContent='中俄边境';svg.appendChild(borderLabel);
- // route lines
- routeLines.forEach(r=>{
-  const pts=r.pts.map(n=>toSvg(PLACES.find(p=>p.name===n).lat,PLACES.find(p=>p.name===n).lng));
-  let d='M '+pts[0].x+' '+pts[0].y;
-  for(let i=1;i<pts.length;i++)d+=' L '+pts[i].x+' '+pts[i].y;
-  const line=document.createElementNS(ns,'path');
-  line.setAttribute('d',d);line.setAttribute('fill','none');
-  line.setAttribute('stroke',COLORS[r.mode]);line.setAttribute('stroke-width','3');
-  line.setAttribute('opacity','0.85');
-  if(r.mode==='拼车'||r.mode==='接驳')line.setAttribute('stroke-dasharray','6 4');
-  svg.appendChild(line);
- });
- // place labels
- PLACES.forEach(p=>{
-  const s=toSvg(p.lat,p.lng);
-  const dot=document.createElementNS(ns,'circle');
-  dot.setAttribute('cx',s.x);dot.setAttribute('cy',s.y);dot.setAttribute('r','5');
-  dot.setAttribute('fill','#fffdf8');dot.setAttribute('stroke',COLORS[p.mode]);dot.setAttribute('stroke-width','2');
-  svg.appendChild(dot);
-  const lbl=document.createElementNS(ns,'text');
-  lbl.setAttribute('x',s.x);lbl.setAttribute('y',s.y-9);
-  lbl.setAttribute('text-anchor','middle');lbl.setAttribute('fill',COLORS[p.mode]);
-  lbl.setAttribute('font-size','11');lbl.setAttribute('font-weight','700');lbl.setAttribute('font-family','var(--sans)');
-  lbl.textContent=p.name;
-  lbl.classList.add('route-pin');
-  lbl.addEventListener('click',()=>{render(p.day);document.querySelector('.content').scrollIntoView({behavior:'smooth',block:'start'})});
-  svg.appendChild(lbl);
- });
-}
-const IMG={grass:'https://upload.wikimedia.org/wikipedia/commons/0/0a/%E5%91%BC%E4%BC%A6%E8%B4%9D%E5%B0%94-%E9%A2%9D%E5%B0%94%E5%8F%A4%E7%BA%B3%E6%B2%B3-%E9%87%91%E5%B8%90%E6%B1%89%E8%92%99%E5%8F%A4%E9%83%A8%E8%90%BD_jin_zhang_han_-_panoramio.jpg',river:'https://upload.wikimedia.org/wikipedia/commons/b/be/%E9%A2%9D%E5%B0%94%E5%8F%A4%E7%BA%B3%E6%B2%B3_Argun_River_-_panoramio.jpg',wetland:'https://commons.wikimedia.org/wiki/Special:FilePath/%E9%A2%9D%E5%B0%94%E5%8F%A4%E7%BA%B3%E6%B9%BF%E5%9C%B0%E6%99%AF%E5%8C%BA.jpg?width=1400',forest:'https://upload.wikimedia.org/wikipedia/commons/9/93/A_River_in_Greater_Khingan_Forest.jpg',gate:'https://upload.wikimedia.org/wikipedia/commons/0/07/Manzhouli_Gate_01.jpg'};
+const IMG={grass:'https://upload.wikimedia.org/wikipedia/commons/0/0a/%E5%91%BC%E4%BC%A6%E8%B4%9D%E5%B0%94-%E9%A2%9D%E5%B0%94%E5%8F%A4%E7%BA%B3%E6%B2%B3-%E9%87%91%E5%B8%90%E6%B1%97%E8%92%99%E5%8F%A4%E9%83%A8%E8%90%BD_jin_zhang_han_-_panoramio.jpg',river:'https://upload.wikimedia.org/wikipedia/commons/b/be/%E9%A2%9D%E5%B0%94%E5%8F%A4%E7%BA%B3%E6%B2%B3_Argun_River_-_panoramio.jpg',wetland:'https://commons.wikimedia.org/wiki/Special:FilePath/%E9%A2%9D%E5%B0%94%E5%8F%A4%E7%BA%B3%E6%B9%BF%E5%9C%B0%E6%99%AF%E5%8C%BA.jpg?width=1400',forest:'https://upload.wikimedia.org/wikipedia/commons/9/93/A_River_in_Greater_Khingan_Forest.jpg',gate:'https://upload.wikimedia.org/wikipedia/commons/0/07/Manzhouli_Gate_01.jpg'};
 const days=[
 {title:'01 / 莫日格勒河草原',subtitle:'08:40 抵达海拉尔 · 10:00 去程 · 16:00 回程 · 景区往返车票70元',img:IMG.grass,credit:'金帐汗 / 额尔古纳河 · Wikimedia Commons',tip:'固定班车日不安排骑马、射箭；15:20 开始回入口，守住 16:00 返程。',spots:[['主观景台','高处俯瞰河道曲线；先拍大景，再拍低机位的秋草。'],['金帐汗草原河景','将河流放在画面下三分之一，留足天空和草原尺度。'],['入口回程点','15:20 前拍最后一张人与草原的尺度照。']],food:[['早餐 / 海拉尔站周边','包子、豆浆或面包，抵达后不排长队。','¥10—20'],['午餐 / 自带干粮','牛肉干、面包、能量棒和热水。','¥20—35'],['晚餐 / 海拉尔市区','羊杂汤或小份手把肉，别点整份。','¥30—50']],stops:[['08:40','抵达海拉尔站','出站、洗漱、买早餐；行李寄存后轻装。','抵达'],['09:10','前往班车点','确认 10:00 去程和 16:00 回程，补水买干粮。','换乘'],['10:00','海拉尔 → 莫日格勒河','按已确认车票出发，车上再次确认返程点。','车程'],['11:00','莫日格勒河景区','入口 → 主观景台 → 草原高坡 → 河流视角。','主景'],['12:30','草原午间','自带简餐，给拍摄留体力。','低消费'],['14:30','收尾拍摄','开始向入口移动，预留排队和步行时间。','缓冲'],['16:00','景区 → 海拉尔','预计 17:00—18:00 回到市区。','返程'],['19:00','海拉尔入住','住火车站/客运站附近，准备第二天早班车。','住宿']]},
 {title:'02 / 根河 · 敖鲁古雅',subtitle:'08:30 海拉尔 → 根河 12:00 · 班车 62 元 · 19:30 火车',img:IMG.forest,credit:'大兴安岭森林河流 · Wikimedia Commons',tip:'今天只选一个根河主景点；18:40 到站，19:30 根河→莫尔道嘎车次必须以 12306 核验。',spots:[['敖鲁古雅林缘','让驯鹿、木屋和针叶林同框；避开正午顶光。'],['根河源湿地备用','若驯鹿交通不便，改拍湿地栈道高点和秋色河道。'],['根河站台','傍晚蓝调时刻拍站牌与行李，作为转场照片。']],food:[['车站午餐','面条、饺子或盖饭，快而热。','¥20—35'],['根河早晚餐','林区家常菜或小份铁锅炖，17:00 前吃完。','¥35—60'],['夜车补给','热水、坚果、巧克力，抵达后不再觅食。','¥15—30']],stops:[['06:30','海拉尔起床','早餐、退房，贵重物品随身。','早起'],['07:10','去海拉尔客运站','07:45 到站取票、确认站台。','换乘'],['08:30','海拉尔 → 根河','班车出发，约 12:00 抵达，票价 62 元。','车程'],['12:00','根河午餐 / 寄存行李','车站附近用餐，先解决晚间火车票。','落地'],['12:40','敖鲁古雅使鹿部落','驯鹿活动区、林地和鄂温克族生活展示。','自然+文化'],['15:30','回根河市区','不追加远距离景点；天气差时改湿地。','回程'],['17:00','提前晚餐','补给夜车，18:00 后只做乘车准备。','补给'],['18:40','根河火车站','核验车次、站台与开行状态。','红色节点'],['19:30—22:00','根河 → 莫尔道嘎','按你的主方案录入，实际以 12306 为准。','铁路'],['22:00','莫尔道嘎入住','提前确认晚到入住，住车站/镇中心。','晚到']]},
 {title:'03 / 莫尔道嘎森林公园',subtitle:'上午秋色森林 · 下午转住额尔古纳（拉布大林）',img:IMG.forest,credit:'大兴安岭森林河流 · Wikimedia Commons',tip:'莫尔道嘎→拉布大林班车未锁定，森林公园只排半天，下午交通优先级高于加景点。',spots:[['红豆坡','落叶松林层次明显，适合拍林间纵深和金色地表。'],['一目九岭观景台','用栈道或道路做引导线，拍大兴安岭山岭叠合。'],['森林河流桥面','低角度拍水面、秋林和桥的线条关系。']],food:[['早餐 / 莫尔道嘎','热粥、包子或面条，07:30 前解决。','¥15—30'],['午餐 / 镇中心','简餐优先，不为特色菜排队。','¥25—45'],['晚餐 / 拉布大林','家常菜、小份烤羊排或俄式简餐。','¥35—70']],stops:[['07:00','早餐与退房','确认去拉布大林班车，行李寄存或随身。','准备'],['08:00','森林公园','森林核心景观 → 短步道 → 视开放选择观光车/小火车。','秋色主景'],['11:30','离开森林公园','返回镇中心取行李，保留交通缓冲。','缓冲'],['12:20','莫尔道嘎午餐','同时向客运站确认班次、上车点和行李规定。','换乘'],['下午','莫尔道嘎 → 拉布大林','具体班次待核验；无直达时问清替代衔接。','待确认'],['傍晚','拉布大林入住','住客运站或市中心附近。','住宿'],['19:00','确认第四天湿地与卡线','联系卡线司机，确认第五天集合、路线和价格。','预订']]},
 {title:'04 / 额尔古纳湿地午后慢游',subtitle:'上午睡懒觉休整 · 中午市区用餐 · 下午湿地游览',img:IMG.wetland,credit:'额尔古纳湿地景区 · Wikimedia Commons',tip:'上午不赶行程，睡醒后在市区吃饭；下午尽早进入湿地，按 08:00—17:00 的常见开放时段安排，预留返程缓冲。',spots:[['湿地主观景台','午后光线更适合拍根河弯曲河道、湿地草甸和远处林带的层次。'],['木栈道高点','用人物做尺度，拍金色灌木、水线与秋季天空。'],['湿地边缘林带','找白桦、落叶松与河谷同框，不必追求走完全部区域。']],food:[['早午餐 / 拉布大林市区','睡醒后再出门，推荐牛肉面、东北菜或小份铁锅炖。','¥25—50'],['下午补给 / 出发前','带热水、面包或牛肉干，湿地内不依赖正餐。','¥15—30'],['晚餐 / 市区','小份烤羊排、手把肉或俄式简餐，早点休息。','¥40—80']],stops:[['09:30—11:30','睡懒觉与酒店休整','不设早起闹钟；补觉、充电、整理前几天照片，查看下午天气。','慢休整'],['11:30—12:30','拉布大林市区用餐','睡醒后再出门，吃一顿热饭并购买湿地途中补给。','午餐'],['12:30—13:00','前往额尔古纳国家湿地公园','打车或拼车，景区距拉布大林大桥约 13 公里。','车程'],['13:00—16:00','湿地公园午后游览','木栈道 → 主观景台 → 根河河道全景 → 湿地边缘林带。','自然主景'],['16:00—16:30','收尾拍摄与返程','从高处补拍午后光线，16:30 前向出口移动。','缓冲'],['16:30—17:00','回到拉布大林市区','回酒店休息，整理第五天卡线装备。','回程'],['17:30','确认卡线拼车','核对车牌、司机、开放路段、油费/门票/接送。','关键准备'],['19:00','市区晚餐','早点休息，为第五天卡线拼车做准备。','住宿']]},
 {title:'05 / 中俄边境卡线',subtitle:'拉布大林拼车往返 · 额尔古纳河与秋草原',img:IMG.river,credit:'额尔古纳河 · Wikimedia Commons',tip:'五卡、七卡、九卡受天气、道路维护和边境管理影响；不跨警戒线、不飞无人机，服从司机改线。',spots:[['额尔古纳河弯道','在安全点拍河湾、草原和对岸林线，别靠近警戒设施。'],['五卡 / 七卡 / 九卡','按当天开放路线拍边防路延伸感和金色秋草。'],['开阔草原高地','如果司机允许停留，拍草垛、牛羊和夕阳；风大提前收工。']],food:[['出发前早餐','热饮+主食，卡线沿途不保证餐饮。','¥15—30'],['午餐 / 路餐','提前问是否包含；自带面包、牛肉干、热水。','¥25—60'],['晚餐 / 拉布大林','回城后再吃铁锅炖或小份烤羊排。','¥40—80']],stops:[['06:30','早餐与补给','带保暖层、充电宝；离线地图提前下载。','早起'],['07:00—07:30','拼车集合','确认车牌、同行人数、返回时间和改线规则。','集合'],['07:30—09:00','前往卡线起点','沿途草原林带渐变，安全停车才下车。','车程'],['09:00—12:00','额尔古纳河 / 卡点','按开放情况走五卡、七卡或九卡，不强求全覆盖。','边境自然'],['12:00—13:00','午餐休息','听司机安排，不为拍照错过集合。','补给'],['13:00—15:30','河流与秋草原','河湾、白桦、草垛和开阔草原是主景。','拍摄'],['15:30—17:30','返回拉布大林','秋季天黑早，拒绝临时追加远线。','返程'],['18:00','回城休息','确认第六天最早去满洲里的班车。','关键准备']]},
-{title:'06 / 满洲里短停 · 夜返沈阳',subtitle:'拉布大林 → 满洲里 → 海拉尔 → 沈阳',img:IMG.gate,credit:'满洲里国门 · Wikimedia Commons / leon li',tip:'这是全程高风险衔接日。满洲里最多选一个核心景点；任何晚点都优先放弃深度游，保住海拉尔返程火车。',spots:[['满洲里国门','时间足够再入园；先拍主楼、铁路口岸和开阔边境线。'],['满洲里俄式街区','用蓝天、彩色建筑和金色树叶拍城市氛围。'],['海拉尔返程站台','只拍一张转场照，给取行李和进站留足时间。']],food:[['出发前早餐','拉布大林客运站附近解决，随身带午餐补给。','¥15—30'],['满洲里午餐','俄式简餐、锅包肉或小份牛羊肉；排队超 30 分钟换店。','¥50—90'],['海拉尔晚餐','车站附近面条、饺子或快餐，不离站太远。','¥20—40']],stops:[['06:00','起床退房','早餐，核验最早班车和满洲里→海拉尔车票。','硬节点'],['06:40','到拉布大林客运站','争取早班车；公开参考票价约 68 元，现场确认。','换乘'],['上午—中午','拉布大林 → 满洲里','车上准备简餐，抵达先寄存行李。','长途'],['抵达后','满洲里短停','优先国门或俄式街区，最多选一个主景点。','城市节点'],['下午','满洲里 → 海拉尔','提前到站，不压最后一班；预留晚点缓冲。','高风险'],['傍晚','海拉尔取行李','车站附近简餐，确认沈阳火车检票口。','转场'],['晚上','海拉尔 → 沈阳','乘夜火车返程；若前段延误，直接额尔古纳返海拉尔。','终点']]}
+{title:'06 / 满洲里短停 · 夜返沈阳',subtitle:'拉布大林 → 满洲里 → 海拉尔 → 沈阳',img:IMG.gate,credit:'满洲里国门 · Wikimedia Commons / leon li',tip:'这是全程高风险衔接日。满洲里最多选一个核心景点；任何晚点都优先放弃深度游，保住海拉尔返程火车。',spots:[['满洲里国门','时间足够再入园；先拍主楼、铁路口岸和开阔边境线。'],['满洲里俄式街区','用蓝天、彩色建筑和金色树叶拍城市氛围。'],['海拉尔返程站台','只拍一张转场照，给取行李和进站留足时间。']],food:[['出发前早餐','拉布大林客运站附近解决，随身带午餐补给。','¥15—30'],['满洲里午餐','俄式简餐、锅包肉或小份牛羊肉；排队超 30 分钟换店。','¥50—90'],['海拉尔晚餐','车站附近面条、饺子或快餐，不离站太远。','¥20—40']],stops:[['06:00','起床退房','早餐，核验最早班车和满洲里→海拉尔车票。','硬节点'],['06:40','到拉布大林客运站','争取早班车；公开参考票价约 68 元，现场确认。','换乘'],['上午—中午','拉布大林 → 满洲里','车上准备简餐，抵达先寄存行李。','长途'],['抵达后','满洲里短停','优先国门或俄式街区，最多选一个主景点。','城市节点'],['下午','满洲里 → 海拉尔','提前到站，不压最后一班；预留晚点缓冲。','高风险'],['傍晚','海拉尔取行李','车站附近简餐，确认沈阳火车检票口。','转场'],['晚上','海拉尔 → 沈阳','乘夜火车返程；若前段延误，直接额尔古纳返海拉尔。','终点']]},
 ];
 function render(i){const d=days[i];document.querySelectorAll('.day-tab').forEach(x=>x.classList.toggle('active',+x.dataset.day===i));document.getElementById('title').textContent=d.title;document.getElementById('subtitle').textContent=d.subtitle;document.getElementById('tip').textContent=d.tip;const im=document.getElementById('photo');im.src=d.img;im.onerror=()=>{im.src=IMG.forest};document.getElementById('photoTitle').textContent=d.title.split(' / ')[1];document.getElementById('photoCredit').textContent=d.credit;document.getElementById('timeline').innerHTML=d.stops.map(s=>`<article class="item"><div class="time">${s[0]}</div><div class="node"></div><div class="event"><h3>${s[1]}</h3><p>${s[2]}</p><span class="pill">${s[3]}</span>${['待确认','红色节点','关键准备','高风险','硬节点'].includes(s[3])?'<span class="pill warn">需核验</span>':''}</div></article>`).join('');document.getElementById('spots').innerHTML=d.spots.map(x=>`<div class="point"><b>${x[0]}</b><span>${x[1]}</span></div>`).join('');document.getElementById('food').innerHTML=d.food.map(x=>`<div class="dish"><div><b>${x[0]}</b><span>${x[1]}</span></div><span class="cost">${x[2]}</span></div>`).join('');localStorage.setItem('hulunbuir-day',i)}
-document.querySelectorAll('.day-tab').forEach(b=>b.addEventListener('click',()=>{render(+b.dataset.day);document.querySelector('.content').scrollIntoView({behavior:'smooth',block:'start'})}));document.getElementById('print').onclick=()=>window.print();document.getElementById('copy').onclick=async()=>{const d=days[+(localStorage.getItem('hulunbuir-day')||0)];try{await navigator.clipboard.writeText(d.title+'\n'+d.stops.map(s=>s[0]+' '+s[1]).join('\n'));toast('已复制当前日时间轴')}catch(e){toast('浏览器未授权剪贴板')}};function toast(t){const x=document.getElementById('toast');x.textContent=t;x.classList.add('show');setTimeout(()=>x.classList.remove('show'),1700)}render(+(localStorage.getItem('hulunbuir-day')||0));renderSketchMap();
-const routePlaces=[
- {name:'海拉尔',lat:49.2100,lng:119.7504,day:0,type:'起点 · 市内住宿',mode:'起点',desc:'抵达海拉尔，住火车站/客运站附近。'},
- {name:'莫日格勒河',lat:49.4200,lng:119.4800,day:0,type:'自然景观',mode:'班车',desc:'草原高坡、河道曲线与金帐汗方向草原景观。'},
- {name:'根河',lat:51.3347,lng:121.8112,day:1,type:'林区城市',mode:'班车',desc:'海拉尔08:30出发，约12:00抵达，班车62元。'},
- {name:'敖鲁古雅使鹿部落',lat:50.7000,lng:121.3800,day:1,type:'森林 / 驯鹿',mode:'市内接驳',desc:'根河当日主景点，重点看林地与驯鹿活动区。'},
- {name:'莫尔道嘎镇',lat:51.2657,lng:120.7716,day:1,type:'森林小镇',mode:'火车',desc:'19:30—22:00夜火车抵达，晚到入住。'},
- {name:'莫尔道嘎国家森林公园',lat:51.4051,lng:120.7358,day:2,type:'大兴安岭森林',mode:'市内接驳',desc:'红豆坡、一目九岭与森林河流景观。'},
- {name:'拉布大林',lat:50.2629,lng:120.2161,day:2,type:'额尔古纳市区',mode:'班车',desc:'第三天转住，第四天湿地与第五天卡线的基地。'},
- {name:'额尔古纳国家湿地公园',lat:50.3520,lng:120.4203,day:3,type:'湿地',mode:'市内接驳',desc:'午后木栈道、主观景台与根河湿地全景。'},
- {name:'卡线示意点',lat:50.5600,lng:120.0000,day:4,type:'边境河流 / 草原',mode:'拼车',desc:'五卡、七卡、九卡按当天开放情况选择，位置为线路示意。'},
- {name:'满洲里',lat:49.5914,lng:117.4464,day:5,type:'边境城市',mode:'班车',desc:'第六天短停，优先国门或俄式街区，再回海拉尔。'}
-];
-const map= L.map('routeMap',{scrollWheelZoom:false}).setView([50.45,120.45],7);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors'}).addTo(map);
-const colors={班车:'#4779a1','火车':'#7b5d99','拼车':'#b7843e','市内接驳':'#6b9b6a','起点':'#315b43'};
-function iconFor(type){return L.divIcon({className:'route-pin',html:`<span style="background:${colors[type]||'#315b43'}"></span>`,iconSize:[18,18],iconAnchor:[9,9],popupAnchor:[0,-10]})}
-routePlaces.forEach(p=>{const m=L.marker([p.lat,p.lng],{icon:iconFor(p.mode)}).addTo(map);m.bindPopup(`<div><strong class="map-place">${p.name}</strong><br><span>${p.type}</span><br><span>${p.desc}</span><br><a class="map-day-link" data-day="${p.day}">查看第${p.day+1}天攻略 →</a></div>`);m.on('popupopen',()=>{const link=document.querySelector('.map-day-link[data-day="'+p.day+'"]');if(link)link.onclick=()=>{render(p.day);document.querySelector('.content').scrollIntoView({behavior:'smooth',block:'start'});m.closePopup()}})});
-function seg(points,mode){return L.polyline(points,{color:colors[mode],weight:4,opacity:.86,dashArray:mode==='拼车'?'8 8':null}).addTo(map)}
-seg([[49.2100,119.7504],[49.4200,119.4800]],'班车');
-seg([[49.2100,119.7504],[51.3347,121.8112]],'班车');
-seg([[51.3347,121.8112],[50.7000,121.3800]],'市内接驳');
-seg([[51.3347,121.8112],[51.2657,120.7716]],'火车');
-seg([[51.2657,120.7716],[51.4051,120.7358]],'市内接驳');
-seg([[51.2657,120.7716],[50.2629,120.2161]],'班车');
-seg([[50.2629,120.2161],[50.3520,120.4203]],'市内接驳');
-seg([[50.2629,120.2161],[50.5600,120.0000],[50.2629,120.2161]],'拼车');
-seg([[50.2629,120.2161],[49.5914,117.4464]],'班车');
-seg([[49.5914,117.4464],[49.2100,119.7504]],'班车');
-setTimeout(()=>map.invalidateSize(),250);
+document.querySelectorAll('.day-tab').forEach(b=>b.addEventListener('click',()=>{render(+b.dataset.day);document.querySelector('.content').scrollIntoView({behavior:'smooth',block:'start'})}));document.getElementById('print').onclick=()=>window.print();document.getElementById('copy').onclick=async()=>{const d=days[+(localStorage.getItem('hulunbuir-day')||0)];try{await navigator.clipboard.writeText(d.title+'\n'+d.stops.map(s=>s[0]+' '+s[1]).join('\n'));toast('已复制当前日时间轴')}catch(e){toast('浏览器未授权剪贴板')}};function toast(t){const x=document.getElementById('toast');x.textContent=t;x.classList.add('show');setTimeout(()=>x.classList.remove('show'),1700)}render(+(localStorage.getItem('hulunbuir-day')||0));
 </script>
+
+<script>
+// ─── Hand-drawn style interactive map ───────────────────────────────
+// Coordinates are proportionally spaced to match real geography:
+//   longitude 117.0–122.0 → x  (width ~5.0°)
+//   latitude   49.0–51.7  → y  (height ~2.7°)
+// Higher lat = higher on screen (y decreases)
+
+const MAP_W = 780, MAP_H = 360;
+const GEO = {lonMin:116.5, lonMax:122.5, latMin:48.8, latMax:51.8};
+function proj(lat, lng) {
+  return {
+    x: (lng - GEO.lonMin) / (GEO.lonMax - GEO.lonMin) * MAP_W,
+    y: (GEO.latMax - lat) / (GEO.latMax - GEO.latMin) * MAP_H
+  };
+}
+
+const PLACES = [
+  {name:'海拉尔',   lat:49.21, lng:119.75, day:0, mode:'起点', desc:'抵达海拉尔，住火车站/客运站附近'},
+  {name:'莫日格勒河',lat:49.42, lng:119.48, day:0, mode:'班车', desc:'草原高坡、河道曲线与金帐汗方向草原景观'},
+  {name:'根河',     lat:51.33, lng:121.81, day:1, mode:'班车', desc:'海拉尔08:30出发，约12:00抵达，班车62元'},
+  {name:'敖鲁古雅', lat:50.70, lng:121.38, day:1, mode:'接驳', desc:'根河当日主景点，重点看林地与驯鹿活动区'},
+  {name:'莫尔道嘎', lat:51.27, lng:120.77, day:1, mode:'火车', desc:'19:30—22:00夜火车抵达，晚到入住'},
+  {name:'莫尔道嘎森林公园', lat:51.41, lng:120.74, day:2, mode:'接驳', desc:'红豆坡、一目九岭与森林河流景观'},
+  {name:'拉布大林', lat:50.26, lng:120.22, day:2, mode:'班车', desc:'第三天转住，第四天湿地与第五天卡线的基地'},
+  {name:'额尔古纳湿地', lat:50.35, lng:120.42, day:3, mode:'接驳', desc:'午后木栈道、主观景台与根河湿地全景'},
+  {name:'卡线',     lat:50.56, lng:120.00, day:4, mode:'拼车', desc:'五卡、七卡、九卡按当天开放情况选择'},
+  {name:'满洲里',   lat:49.59, lng:117.45, day:5, mode:'班车', desc:'第六天短停，优先国门或俄式街区，再回海拉尔'}
+];
+
+const ROUTES = [
+  {from:'海拉尔',   to:'莫日格勒河', mode:'班车',  curve: 0.08},
+  {from:'海拉尔',   to:'根河',       mode:'班车',  curve:-0.05},
+  {from:'根河',     to:'敖鲁古雅',   mode:'接驳',  curve: 0.06},
+  {from:'根河',     to:'莫尔道嘎',   mode:'火车',  curve:-0.03},
+  {from:'莫尔道嘎', to:'莫尔道嘎森林公园', mode:'接驳', curve: 0.04},
+  {from:'莫尔道嘎', to:'拉布大林',   mode:'班车',  curve:-0.06},
+  {from:'拉布大林', to:'额尔古纳湿地', mode:'接驳',  curve: 0.05},
+  {from:'拉布大林', to:'卡线',       mode:'拼车',  curve:-0.10},
+  {from:'卡线',     to:'拉布大林',   mode:'拼车',  curve: 0.10},
+  {from:'拉布大林', to:'满洲里',     mode:'班车',  curve:-0.04},
+  {from:'满洲里',   to:'海拉尔',     mode:'班车',  curve: 0.03}
+];
+
+const MODE_COLOR = {
+  '班车':'#4779a1', '火车':'#7b5d99', '拼车':'#b7843e',
+  '接驳':'#6b9b6a', '起点':'#315b43'
+};
+
+const ns = 'http://www.w3.org/2000/svg';
+const svg = document.getElementById('sketchMap');
+if (svg) {
+  function el(tag, attrs) {
+    const e = document.createElementNS(ns, tag);
+    for (const [k,v] of Object.entries(attrs||{})) e.setAttribute(k,v);
+    return e;
+  }
+
+  // Background
+  svg.appendChild(el('rect',{width:'100%',height:'100%',fill:'#e8e6dc',rx:'4'}));
+
+  // Grid lines (subtle)
+  for (let lon = 117; lon <= 122; lon += 1) {
+    const p1 = proj(49.0, lon), p2 = proj(51.7, lon);
+    const l = el('line',{x1:p1.x,y1:p1.y,x2:p2.x,y2:p2.y,stroke:'#d4d2c8','stroke-width':'0.5'});
+    svg.appendChild(l);
+  }
+  for (let lat = 49; lat <= 51; lat += 1) {
+    const p1 = proj(lat, 117), p2 = proj(lat, 122);
+    const l = el('line',{x1:p1.x,y1:p1.y,x2:p2.x,y2:p2.y,stroke:'#d4d2c8','stroke-width':'0.5'});
+    svg.appendChild(l);
+  }
+
+  // 额尔古纳河 (Arxun River) — meandering border river
+  const arunPts = [];
+  for (let t = 0; t <= 1; t += 0.02) {
+    const lng = 117.3 + t * 5.0;
+    const lat = 50.6 + 0.15 * Math.sin(t * Math.PI * 2.5) + 0.05 * Math.sin(t * Math.PI * 5);
+    arunPts.push(proj(lat, lng));
+  }
+  let arunD = 'M ' + arunPts[0].x + ' ' + arunPts[0].y;
+  for (let i = 1; i < arunPts.length; i++) arunD += ' L ' + arunPts[i].x + ' ' + arunPts[i].y;
+  const arun = el('path',{d:arunD,fill:'none',stroke:'#a8c4b8','stroke-width':'2','stroke-opacity':'0.6'});
+  svg.appendChild(arun);
+  const arunLbl = el('text',{x:'520',y:'142',fill:'#7a9a8a','font-size':'9','font-family':'var(--sans)'});
+  arunLbl.textContent = '额尔古纳河（边境）';
+  svg.appendChild(arunLbl);
+
+  // 大兴安岭林区 shaded region
+  const forest = el('ellipse',{cx:'530',cy:'80',rx:'80',ry:'50',fill:'#c8d8c4','opacity':'0.30'});
+  svg.appendChild(forest);
+  const fLbl = el('text',{x:'480',y:'76',fill:'#5a7a5a','font-size':'10','font-family':'var(--sans)'});
+  fLbl.textContent = '大兴安岭林区';
+  svg.appendChild(fLbl);
+
+  // 呼伦贝尔草原 label
+  const gLbl = el('text',{x:'160',y:'310',fill:'#7a9a6a','font-size':'11','font-family':'var(--sans)'});
+  gLbl.textContent = '呼伦贝尔草原';
+  svg.appendChild(gLbl);
+
+  // 湿地 shaded region
+  const wet = el('ellipse',{cx:'340',cy:'230',rx:'55',ry:'35',fill:'#d8e8d0','opacity':'0.35'});
+  svg.appendChild(wet);
+  const wLbl = el('text',{x:'300',y:'252',fill:'#5a7a5a','font-size':'9','font-family':'var(--sans)'});
+  wLbl.textContent = '额尔古纳湿地';
+  svg.appendChild(wLbl);
+
+  // Route lines with curves
+  ROUTES.forEach(r => {
+    const a = PLACES.find(p => p.name === r.from);
+    const b = PLACES.find(p => p.name === r.to);
+    if (!a || !b) return;
+    const pa = proj(a.lat, a.lng), pb = proj(b.lat, b.lng);
+    // Quadratic bezier control point
+    const mx = (pa.x + pb.x) / 2, my = (pa.y + pb.y) / 2;
+    const dx = pb.x - pa.x, dy = pb.y - pa.y;
+    const len = Math.sqrt(dx*dx + dy*dy) || 1;
+    const cx = mx + (-dy/len) * len * r.curve;
+    const cy = my + (dx/len) * len * r.curve;
+    const d = `M ${pa.x} ${pa.y} Q ${cx} ${cy} ${pb.x} ${pb.y}`;
+    const line = el('path',{d:d,fill:'none',stroke:MODE_COLOR[r.mode],'stroke-width':'3',opacity:'0.85'});
+    if (r.mode === '拼车' || r.mode === '接驳') {
+      line.setAttribute('stroke-dasharray','7 4');
+    }
+    svg.appendChild(line);
+  });
+
+  // Place markers
+  PLACES.forEach((place, idx) => {
+    const sp = proj(place.lat, place.lng);
+    const isStart = place.mode === '起点';
+
+    // Outer glow
+    const glow = el('circle',{cx:sp.x,cy:sp.y,r:isStart?9:7,fill:MODE_COLOR[place.mode],'opacity':'0.20'});
+    svg.appendChild(glow);
+
+    // Dot
+    const dot = el('circle',{cx:sp.x,cy:sp.y,r:isStart?6:4.5,fill:isStart?'#b7843e':MODE_COLOR[place.mode],stroke:'#fffdf8','stroke-width':'2'});
+    svg.appendChild(dot);
+
+    // Label
+    const lbl = el('text',{x:sp.x,y:sp.y-(isStart?12:10),'text-anchor':'middle',fill:MODE_COLOR[place.mode],'font-size':isStart?'12':'11','font-weight':isStart?'800':'700','font-family':'var(--sans)'});
+    lbl.textContent = place.name;
+    lbl.classList.add('route-pin');
+    lbl.addEventListener('click', () => { render(place.day); document.querySelector('.content').scrollIntoView({behavior:'smooth',block:'start'}); });
+    svg.appendChild(lbl);
+
+    // Day badge for start
+    if (isStart) {
+      const badge = el('text',{x:sp.x,y:sp.y+22,'text-anchor':'middle',fill:'#b7843e','font-size':'9','font-family':'var(--sans)','font-weight':'600'});
+      badge.textContent = '起点';
+      svg.appendChild(badge);
+    }
+  });
+
+  // Title
+  const title = el('text',{x:MAP_W-10,y:20,'text-anchor':'end',fill:'#6f7c73','font-size':'10','font-family':'var(--sans)'});
+  title.textContent = '单击地点查看当日攻略';
+  svg.appendChild(title);
+}
+</script>
+
 </body>
 </html>
